@@ -1,4 +1,9 @@
 #Function App
+locals {
+  resource_name_prefix_api = "${var.resource_name_prefix}-api"
+
+}
+
 
 data "azurerm_subscription" "main" {}
 
@@ -9,7 +14,7 @@ data "azurerm_cosmosdb_account" "main" {
 
 # Create Function App Storage Account
 resource "azurerm_storage_account" "main" {
-  name                            = lower(replace("${var.resource_name_prefix}-sa", "/[-_]/", ""))
+  name                            = lower(replace("${local.resource_name_prefix_api}-sa", "/[-_]/", ""))
   resource_group_name             = var.resource_group_name
   location                        = var.location
   account_tier                    = "Standard"
@@ -20,7 +25,7 @@ resource "azurerm_storage_account" "main" {
 
 # Create Storage Account
 resource "azurerm_storage_account" "pkpass" {
-  name                            = lower(replace("${var.resource_name_prefix}pkpass-sa", "/[-_]/", ""))
+  name                            = lower(replace("${var.resource_name_prefix}", "/[-_]/", ""))
   resource_group_name             = var.resource_group_name
   location                        = var.location
   account_tier                    = "Standard"
@@ -31,19 +36,19 @@ resource "azurerm_storage_account" "pkpass" {
 
 resource "azurerm_storage_container" "pkpass" {
   name                  = "pkpass"
-  storage_account_name  = azurerm_storage_account.pkpass.name
+  storage_account_id    = azurerm_storage_account.pkpass.id
   container_access_type = "private"
 }
 
 resource "azurerm_storage_container" "images" {
   name                  = "images"
-  storage_account_name  = azurerm_storage_account.pkpass.name
+  storage_account_id    = azurerm_storage_account.pkpass.id
   container_access_type = "private"
 }
 
 # Create Function App Service Plan
 resource "azurerm_service_plan" "main" {
-  name                = "${var.resource_name_prefix}-asp"
+  name                = "${local.resource_name_prefix_api}-asp"
   resource_group_name = var.resource_group_name
   location            = var.location
   os_type             = "Windows"
@@ -54,7 +59,7 @@ resource "azurerm_service_plan" "main" {
 
 # Create Function App
 resource "azurerm_windows_function_app" "main" {
-  name                        = "${var.resource_name_prefix}-fa"
+  name                        = "${local.resource_name_prefix_api}-fa"
   resource_group_name         = var.resource_group_name
   location                    = var.location
   storage_account_name        = azurerm_storage_account.main.name
@@ -82,6 +87,11 @@ resource "azurerm_windows_function_app" "main" {
     KEY_VAULT_SECRET_SIGNING_KEY  = "signerKey"
     STORAGE_ACCOUNT_PASS          = azurerm_storage_account.pkpass.name
     COSMOSDB_ACCOUNT              = var.azurerm_cosmosdb_account_name
+    COSMOSDB_DATABASE             = var.azurerm_cosmosdb_database_name
+    KEY_VAULT_URL                 = var.keyvault_url
+    B2C_CLIENT_ID                 = var.b2c_client_id
+    B2C_ISSUER                    = var.b2c_issuer
+    B2C_EXTENSIONS_APP_ID         = var.b2c_extensions_app_id
   }
 
   lifecycle {
@@ -96,75 +106,10 @@ resource "azurerm_windows_function_app" "main" {
       app_settings["WEBSITE_NODE_DEFAULT_VERSION"],
       app_settings["WEBSITE_RUN_FROM_PACKAGE"],
       app_settings["WEBSITE_ENABLE_SYNC_UPDATE_SITE"],
-      app_settings["APPINSIGHTS_INSTRUMENTATIONKEY"],
-      app_settings["KEY_VAULT_URL"],
-      app_settings["STORAGE_ACCOUNT_PASS"],
-      app_settings["COSMOSDB_ACCOUNT"],
-      app_settings["COSMOSDB_DATABASE"],
-      app_settings["B2C_CLIENT_ID"],
-      app_settings["B2C_ISSUER"],
-      app_settings["B2C_EXTENSIONS_APP_ID"],
-      app_settings["B2C_AUTH_USERNAME"],
-      app_settings["B2C_AUTH_PASSWORD"]
+      app_settings["APPINSIGHTS_INSTRUMENTATIONKEY"]
     ]
   }
 }
-
-# resource "azurerm_windows_function_app_slot" "dev" {
-#   name                        = "dev"
-#   function_app_id             = azurerm_windows_function_app.main.id
-#   storage_account_name        = azurerm_storage_account.main.name
-#   storage_account_access_key  = azurerm_storage_account.main.primary_access_key
-#   functions_extension_version = "~4"
-
-#   identity {
-#     type = "SystemAssigned"
-#   }
-
-#   site_config {
-#     application_insights_key = var.instrumentation_key
-#     application_stack {
-#       node_version = "~20"
-#     }
-#   }
-
-#   tags = var.tags
-
-#   app_settings = {
-#     KEY_VAULT_URL                 = var.keyvault_url
-#     KEY_VAULT_SECRET_ROOT_CERT    = "wwdrCert"
-#     KEY_VAULT_SECRET_SIGNING_CERT = "signerCert"
-#     KEY_VAULT_SECRET_SIGNING_KEY  = "signerKey"
-#     STORAGE_ACCOUNT_PASS          = azurerm_storage_account.pkpass.name
-#     COSMOSDB_ACCOUNT              = var.azurerm_cosmosdb_account_name
-#   }
-
-#   lifecycle {
-#     ignore_changes = [
-#       app_settings["AzureWebJobsDashboard"],
-#       app_settings["AzureWebJobsStorage"],
-#       app_settings["FUNCTIONS_EXTENSION_VERSION"],
-#       app_settings["FUNCTIONS_WORKER_RUNTIME"],
-#       app_settings["WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"],
-#       app_settings["WEBSITE_CONTENTSHARE"],
-#       app_settings["WEBSITE_ENABLE_SYNC_UPDATE_SITE"],
-#       app_settings["WEBSITE_NODE_DEFAULT_VERSION"],
-#       app_settings["WEBSITE_RUN_FROM_PACKAGE"],
-#       app_settings["WEBSITE_ENABLE_SYNC_UPDATE_SITE"],
-#       app_settings["APPINSIGHTS_INSTRUMENTATIONKEY"],
-#       app_settings["KEY_VAULT_URL"],
-#       app_settings["STORAGE_ACCOUNT_PASS"],
-#       app_settings["COSMOSDB_ACCOUNT"],
-#       app_settings["COSMOSDB_DATABASE"],
-#       app_settings["B2C_CLIENT_ID"],
-#       app_settings["B2C_ISSUER"],
-#       app_settings["B2C_EXTENSIONS_APP_ID"],
-#       app_settings["B2C_AUTH_USERNAME"],
-#       app_settings["B2C_AUTH_PASSWORD"]
-#     ]
-#   }
-# }
-
 
 resource "azurerm_role_assignment" "secret" {
   scope                = var.keyvault_id

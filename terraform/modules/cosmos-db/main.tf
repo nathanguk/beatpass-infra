@@ -121,3 +121,23 @@ resource "azurerm_cosmosdb_sql_container" "pass" {
   }
 
 }
+
+
+resource "azurerm_cosmosdb_sql_container" "role" {
+  name                  = "role"
+  resource_group_name = var.resource_group_name
+  account_name          = azurerm_cosmosdb_account.main.name
+  database_name         = azurerm_cosmosdb_sql_database.main.name
+  partition_key_version = 2
+  partition_key_kind = "MultiHash"
+  partition_key_paths = ["/id"]
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+
+  }
+}

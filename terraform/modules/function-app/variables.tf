@@ -50,4 +50,23 @@ variable "azurerm_cosmosdb_account_name" {
   type        = string
 }
 
+variable "azurerm_cosmosdb_database_name" {
+  description = "The CosmosDB database name"
+  type        = string
+}
 
+variable "b2c_client_id" {
+  description = "The B2C Client Id"
+  type        = string
+}
+
+variable "b2c_extensions_app_id" {
+  description = "The B2C Extensions App Id"
+  type        = string
+}
+
+variable "b2c_issuer" {
+  description = "The B2C Issuer Uri"
+  type        = string
+  
+}

@@ -1,2 +1,2 @@
 # beatpass-infra
-BeatPass Infra
+beatpass Infra
